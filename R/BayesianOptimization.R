@@ -360,13 +360,8 @@ BayesianOptimization <- function(
     }
 
     # Create random points to initialize local maximum search.
-<<<<<<< HEAD
     localTries <- randParams(boundsDT, gsPoints, FAIL = FALSE)
     localTryMM <- minMaxScale(localTries, boundsDT)
-=======
-    LocalTries <- data.table(sapply(ParamNames, RandParams, gsPoints, boundsDT))
-    LocalTryMM <- data.table(sapply(ParamNames, MinMaxScale, LocalTries, boundsDT))
->>>>>>> Assess nIters as number of distinct parameter values to allow returning multiple scores when using CV
 
     # Try gsPoints starting points to find parameter set that optimizes Acq
     if (verbose > 0) cat("\n  2) Running local optimum search...")
@@ -400,19 +395,11 @@ BayesianOptimization <- function(
                          , .export = export
                          ) %op% {
 
-<<<<<<< HEAD
             Params <- fromCluster$newSet[get("iter"),]
             start_time <- proc.time()
             Result <- do.call(what = FUN, args = as.list(Params))
             Elapsed <- (proc.time() - start_time)
             data.table(fromCluster$newSet[get("iter"),], Elapsed = Elapsed[[3]], as.data.table(Result))
-=======
-            Params <- newScorePars[get("iter"), ]
-            start_time <- proc.time()
-            Result <- do.call(what = FUN, args = as.list(Params))
-            Elapsed <- (proc.time() - start_time)
-            data.table(newScorePars[get("iter"), ], Elapsed = Elapsed[[3]], as.data.table(Result))
->>>>>>> Assess nIters as number of distinct parameter values to allow returning multiple scores when using CV
 
     }
 
