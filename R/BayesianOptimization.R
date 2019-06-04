@@ -215,7 +215,7 @@ BayesianOptimization <- function(
   if (initPoints > 0 & nrow(initGrid)>0) stop("initGrid and initPoints are specified, choose one.")
   if (initPoints <= 0 & nrow(initGrid)==0 & nrow(leftOff) == 0) stop("neither initGrid or initPoints are specified, choose one or provide leftOff")
   if (parallel & (Workers == 1)) stop("parallel is set to TRUE but no back end is registered.\n")
-  if (!parallel & Workers > 1 & verbose > 0) cat("parallel back end is registered, but parallel is set to false. Process will not be run in parallel.\n")
+  if (!parallel & Workers > 1 & verbose > 0) message("parallel back end is registered, but parallel is set to false. Process will not be run in parallel.\n")
   if (nrow(initGrid)>0) {
     if (sum(sapply(ParamNames, checkBounds,initGrid, bounds))>0) stop("initGrid not within bounds.")
   }
@@ -223,7 +223,7 @@ BayesianOptimization <- function(
     if (sum(sapply(ParamNames, checkBounds,leftOff, bounds))>0) stop("leftOff not within bounds.")
   }
   if (nrow(leftOff)+initialize*(initPoints+nrow(initGrid)) >= nIters) stop("Rows in initial set will be larger than nIters")
-  if (verbose > 0 & bulkNew < Workers & parallel) cat("bulkNew is less than the threads registered on the parallel back end - process may not utilize all workers.\n")
+  if (verbose > 0 & bulkNew < Workers & parallel) message("bulkNew is less than the threads registered on the parallel back end - process may not utilize all workers.\n")
 
 
   # If an initGrid was specified, make that the initial process fit.
@@ -237,7 +237,7 @@ BayesianOptimization <- function(
         InitFeedParams <- randParams(boundsDT, initPoints)
       }
 
-      if (verbose > 0) cat("\nRunning initial scoring function",nrow(InitFeedParams),"times in",Workers,"thread(s).\n")
+      if (verbose > 0) message("\nRunning initial scoring function",nrow(InitFeedParams),"times in",Workers,"thread(s).\n")
 
       ScoreDT <- foreach( iter = 1:nrow(InitFeedParams)
                         , .options.multicore = mco
@@ -265,7 +265,7 @@ BayesianOptimization <- function(
       # Append leftOff if its names match ScoreDT
       if (nrow(leftOff) > 0) {
         if (!identical(sort(c("Iteration",names(ScoreDT))),sort(names(leftOff)))) {
-          if (verbose > 0) cat("\nNames from scoring function do not match leftOff table. Continuing without using leftOff table.\n")
+          if (verbose > 0) message("\nNames from scoring function do not match leftOff table. Continuing without using leftOff table.\n")
         } else{
         ScoreDT <- rbind(ScoreDT,leftOff, fill = TRUE)
         }
@@ -284,10 +284,10 @@ BayesianOptimization <- function(
   # Save Intermediary Output
   if (!is.null(saveIntermediate)) {
     tryCatch({suppressWarnings(saveRDS(ScoreDT, file = saveIntermediate))
-      if (verbose > 0) cat("\n   Saving Intermediary Results with ",nrow(ScoreDT)," rows to \n   ",saveIntermediate,"\n   This is the first Save/Overwrite.\n")
+      if (verbose > 0) message("\n   Saving Intermediary Results with ",nrow(ScoreDT)," rows to \n   ",saveIntermediate,"\n   This is the first Save/Overwrite.\n")
       Overwrites <- Overwrites + 1}
       , error = function(e) {
-        if (verbose > 0) {cat("\n === Failed to save intermediary results. Please check file path.\n     This message will repeat. === \n")}
+        if (verbose > 0) {message("\n === Failed to save intermediary results. Please check file path.\n     This message will repeat. === \n")}
       }
     )
   }
@@ -307,21 +307,21 @@ BayesianOptimization <- function(
 
     Iter <- Iter + 1
 
-    if (verbose > 0) cat("\nStarting round number",Iter)
+    if (verbose > 0) message("\nStarting round number",Iter)
 
     # How many runs to make this session
       runNew <- pmin(nIters-nrow(ScoreDT), bulkNew)
 
     # Should we switch to another Acq function:
       if (acq == "eips" & stopImpatient$newAcq != "eips" & nrow(ScoreDT) >= stopImpatient$rounds) {
-        if (verbose > 0) cat("\n  0) Changing acquisition function from",acq,"to",stopImpatient$newAcq)
+        if (verbose > 0) message("\n  0) Changing acquisition function from",acq,"to",stopImpatient$newAcq)
         acq <- stopImpatient$newAcq
       }
 
 
     # Fit GP
     newD <- ScoreDT[get("Iteration") == Iter-1,]
-    if (verbose > 0) cat("\n  1) Fitting Gaussian process...")
+    if (verbose > 0) message("\n  1) Fitting Gaussian process...")
 
     # Fitting/Updating GauPro S6 class inside seperate function scope causes memory pointer problems.
     X = matrix(as.matrix(minMaxScale(newD, boundsDT)), nrow = nrow(newD))
@@ -381,7 +381,7 @@ BayesianOptimization <- function(
     fromCluster <- applyCluster()
     acqMaximums <- rbind(acqMaximums, data.table("Iteration" = Iter, fromCluster$clusterPoints))
 
-    if (verbose > 0) cat("\n  3) Running scoring function", nrow(fromCluster$newSet), " times in ", Workers, " thread(s)...\n")
+    if (verbose > 0) message("\n  3) Running scoring function", nrow(fromCluster$newSet), " times in ", Workers, " thread(s)...\n")
 
     NewResults <- foreach( iter = 1:nrow(fromCluster$newSet)
                          , .options.multicore = mco
@@ -410,14 +410,14 @@ BayesianOptimization <- function(
     # Print updates on parameter-score search
     if (verbose > 1) {
 
-      cat("\nResults from most recent parameter scoring:\n")
+      message("\nResults from most recent parameter scoring:\n")
       print(NewResults, row.names = FALSE)
 
       if (max(NewResults$Score) > max(ScoreDT$Score)) {
-        cat("\nNew best parameter set found:\n")
+        message("\nNew best parameter set found:\n")
         print(NewResults[which.max(get("Score")),], row.names = FALSE)
       } else {
-        cat("\nMaximum score was not raised this round. Best score is still:\n")
+        message("\nMaximum score was not raised this round. Best score is still:\n")
         print(ScoreDT[which.max(get("Score")),], row.names = FALSE)
       }
     }
@@ -438,11 +438,11 @@ BayesianOptimization <- function(
     if (!is.null(saveIntermediate)) {
       tryCatch({
         suppressWarnings(saveRDS(ScoreDT, file = saveIntermediate))
-        if (verbose > 0) cat("\n   Saving Intermediary Results with ",nrow(ScoreDT)," rows to:  \n   ",saveIntermediate,"\n   This Save/Overwrite number",Overwrites+1,"\n")
+        if (verbose > 0) message("\n   Saving Intermediary Results with ",nrow(ScoreDT)," rows to:  \n   ",saveIntermediate,"\n   This Save/Overwrite number",Overwrites+1,"\n")
         Overwrites <- Overwrites + 1
       }
       , error = function(e) {
-        if (verbose > 0) cat("\n === Failed to save intermediary results. Please check file path. === \n")
+        if (verbose > 0) message("\n === Failed to save intermediary results. Please check file path. === \n")
       }
       )
     }
