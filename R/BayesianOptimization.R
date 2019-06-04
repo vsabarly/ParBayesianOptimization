@@ -222,7 +222,7 @@ BayesianOptimization <- function(
   if (nrow(leftOff) > 0){
     if (sum(sapply(ParamNames, checkBounds,leftOff, bounds))>0) stop("leftOff not within bounds.")
   }
-  if (nrow(leftOff)+initialize*(initPoints+nrow(initGrid)) >= nIters) stop("Rows in initial set will be larger than nIters")
+  if (uniqueN(leftOff, by = ParamNames)+initialize*(initPoints+nrow(initGrid)) >= nIters) stop("Rows in initial set will be larger than nIters")
   if (verbose > 0 & bulkNew < Workers & parallel) message("bulkNew is less than the threads registered on the parallel back end - process may not utilize all workers.\n")
 
 
