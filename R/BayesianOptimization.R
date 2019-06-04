@@ -395,7 +395,9 @@ BayesianOptimization <- function(
                          ) %op% {
 
             Params <- fromCluster$newSet[get("iter"),]
-            Elapsed <- system.time(Result <- do.call(what = FUN, args = as.list(Params)))
+            start_time <- proc.time()
+            Result <- do.call(what = FUN, args = as.list(Params))
+            Elapsed <- (proc.time() - start_time)
             data.table(fromCluster$newSet[get("iter"),], Elapsed = Elapsed[[3]], as.data.table(Result))
 
     }
