@@ -237,7 +237,7 @@ BayesianOptimization <- function(
         InitFeedParams <- randParams(boundsDT, initPoints)
       }
 
-      if (verbose > 0) message("\nRunning initial scoring function",nrow(InitFeedParams),"times in",Workers,"thread(s).\n")
+      if (verbose > 0) message("\nRunning initial scoring function ",nrow(InitFeedParams)," times in ",Workers," thread(s).\n")
 
       ScoreDT <- foreach( iter = 1:nrow(InitFeedParams)
                         , .options.multicore = mco
@@ -251,7 +251,9 @@ BayesianOptimization <- function(
                         ) %op% {
 
           Params <- InitFeedParams[get("iter"),]
-          Elapsed <- system.time(Result <- do.call(what = FUN, args = as.list(Params)))
+          start_time <- proc.time()
+          Result <- do.call(what = FUN, args = as.list(Params))
+          Elapsed <- (proc.time() - start_time)
           if(sum(names(Result) == "Score") == 0) stop("FUN must return list with element 'Score' at a minimum.")
           data.table(Params,Elapsed = Elapsed[[3]],as.data.table(Result))
 
@@ -303,24 +305,23 @@ BayesianOptimization <- function(
                         )
 
   # Start the iterative GP udpates
-  while(nrow(ScoreDT) < nIters){
-
+  while(uniqueN(ScoreDT, by = ParamNames) < nIters){
     Iter <- Iter + 1
 
-    if (verbose > 0) message("\nStarting round number",Iter)
+    if (verbose > 0) message("\nStarting round number", Iter)
 
     # How many runs to make this session
-      runNew <- pmin(nIters-nrow(ScoreDT), bulkNew)
+      runNew <- pmin(nIters - uniqueN(ScoreDT, by = ParamNames), bulkNew)
 
     # Should we switch to another Acq function:
-      if (acq == "eips" & stopImpatient$newAcq != "eips" & nrow(ScoreDT) >= stopImpatient$rounds) {
-        if (verbose > 0) message("\n  0) Changing acquisition function from",acq,"to",stopImpatient$newAcq)
+      if (acq == "eips" & stopImpatient$newAcq != "eips" & uniqueN(ScoreDT, by = ParamNames) >= stopImpatient$rounds) {
+        if (verbose > 0) message("\n  0) Changing acquisition function from ", acq, " to ", stopImpatient$newAcq)
         acq <- stopImpatient$newAcq
       }
 
 
     # Fit GP
-    newD <- ScoreDT[get("Iteration") == Iter-1,]
+    newD <- ScoreDT[get("Iteration") == Iter - 1, ]
     if (verbose > 0) message("\n  1) Fitting Gaussian process...")
 
     # Fitting/Updating GauPro S6 class inside seperate function scope causes memory pointer problems.
@@ -359,8 +360,13 @@ BayesianOptimization <- function(
     }
 
     # Create random points to initialize local maximum search.
+<<<<<<< HEAD
     localTries <- randParams(boundsDT, gsPoints, FAIL = FALSE)
     localTryMM <- minMaxScale(localTries, boundsDT)
+=======
+    LocalTries <- data.table(sapply(ParamNames, RandParams, gsPoints, boundsDT))
+    LocalTryMM <- data.table(sapply(ParamNames, MinMaxScale, LocalTries, boundsDT))
+>>>>>>> Assess nIters as number of distinct parameter values to allow returning multiple scores when using CV
 
     # Try gsPoints starting points to find parameter set that optimizes Acq
     if (verbose > 0) cat("\n  2) Running local optimum search...")
@@ -394,11 +400,19 @@ BayesianOptimization <- function(
                          , .export = export
                          ) %op% {
 
+<<<<<<< HEAD
             Params <- fromCluster$newSet[get("iter"),]
             start_time <- proc.time()
             Result <- do.call(what = FUN, args = as.list(Params))
             Elapsed <- (proc.time() - start_time)
             data.table(fromCluster$newSet[get("iter"),], Elapsed = Elapsed[[3]], as.data.table(Result))
+=======
+            Params <- newScorePars[get("iter"), ]
+            start_time <- proc.time()
+            Result <- do.call(what = FUN, args = as.list(Params))
+            Elapsed <- (proc.time() - start_time)
+            data.table(newScorePars[get("iter"), ], Elapsed = Elapsed[[3]], as.data.table(Result))
+>>>>>>> Assess nIters as number of distinct parameter values to allow returning multiple scores when using CV
 
     }
 
